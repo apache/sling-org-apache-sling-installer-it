@@ -16,10 +16,6 @@
  */
 package org.apache.sling.installer.it;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -47,6 +43,10 @@ import org.osgi.service.cm.ConfigurationEvent;
 import org.osgi.service.cm.ConfigurationListener;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 @RunWith(PaxExam.class)
 
@@ -359,6 +359,8 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
                 null, cfgData, null, InstallableResource.TYPE_PROPERTIES, 10);
         installer.updateResources(URL_SCHEME, new InstallableResource[] {rsrc}, null);
 
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
+
         // get factory config
         final Configuration cfg = waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
@@ -391,6 +393,8 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         final InstallableResource rsrc = new InstallableResource("/configA/" + cfgFactoryPid + "-" + alias,
                 null, cfgData, null, InstallableResource.TYPE_PROPERTIES, 10);
         installer.updateResources(URL_SCHEME, new InstallableResource[] {rsrc}, null);
+
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
 
         // get factory config
         final Configuration cfg = waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
