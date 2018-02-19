@@ -16,10 +16,6 @@
  */
 package org.apache.sling.installer.it;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -47,6 +43,10 @@ import org.osgi.service.cm.ConfigurationEvent;
 import org.osgi.service.cm.ConfigurationListener;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 @RunWith(PaxExam.class)
 
@@ -367,7 +367,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
-        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.IGNORED);
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
 
         // get updated factory config
         final Configuration secondCfg = waitForFactoryConfigValue("After updating", cfgFactoryPid, "foo", "bla");
@@ -400,7 +400,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
-        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.IGNORED);
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
 
         // get updated factory config
         final Configuration secondCfg = waitForFactoryConfigValue("After updating", cfgFactoryPid, "foo", "bla");
