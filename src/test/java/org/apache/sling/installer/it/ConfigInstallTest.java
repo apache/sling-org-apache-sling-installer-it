@@ -359,6 +359,8 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
                 null, cfgData, null, InstallableResource.TYPE_PROPERTIES, 10);
         installer.updateResources(URL_SCHEME, new InstallableResource[] {rsrc}, null);
 
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
+
         // get factory config
         final Configuration cfg = waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
@@ -367,7 +369,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
-        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.IGNORED);
 
         // get updated factory config
         final Configuration secondCfg = waitForFactoryConfigValue("After updating", cfgFactoryPid, "foo", "bla");
@@ -392,6 +394,8 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
                 null, cfgData, null, InstallableResource.TYPE_PROPERTIES, 10);
         installer.updateResources(URL_SCHEME, new InstallableResource[] {rsrc}, null);
 
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
+
         // get factory config
         final Configuration cfg = waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
@@ -400,7 +404,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
-        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.INSTALLED);
+        waitForResource(URL_SCHEME + ":/configA/" + cfgFactoryPid + "-" + alias, ResourceState.IGNORED);
 
         // get updated factory config
         final Configuration secondCfg = waitForFactoryConfigValue("After updating", cfgFactoryPid, "foo", "bla");
