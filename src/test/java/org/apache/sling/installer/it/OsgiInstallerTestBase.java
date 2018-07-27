@@ -119,7 +119,7 @@ public class OsgiInstallerTestBase implements FrameworkListener {
 
     @Before
     public void setup() {
-        configAdminTracker = new ServiceTracker<ConfigurationAdmin, ConfigurationAdmin>(bundleContext, ConfigurationAdmin.class, null);
+        configAdminTracker = new ServiceTracker<>(bundleContext, ConfigurationAdmin.class, null);
         configAdminTracker.open();
     }
 
@@ -418,7 +418,7 @@ public class OsgiInstallerTestBase implements FrameworkListener {
         final InstallableResource result = new MockInstallableResource(id, new FileInputStream(testBundle), digest, null, priority);
         return new InstallableResource[] {result};
     }
-    
+
     protected InstallableResource[] getInstallableResource(String configPid, Dictionary<String, Object> data) {
         return getInstallableResource(configPid, copy(data), InstallableResource.DEFAULT_PRIORITY);
     }
@@ -429,7 +429,7 @@ public class OsgiInstallerTestBase implements FrameworkListener {
     }
 
     protected Dictionary<String, Object> copy(Dictionary<String, Object> data) {
-        final Dictionary<String, Object> copy = new Hashtable<String, Object>();
+        final Dictionary<String, Object> copy = new Hashtable<>();
         final Enumeration<String> keys = data.keys();
         while(keys.hasMoreElements()) {
             final String key = keys.nextElement();
@@ -504,9 +504,9 @@ public class OsgiInstallerTestBase implements FrameworkListener {
                         mavenBundle("org.slf4j", "jcl-over-slf4j", "1.7.5"),
                         mavenBundle("org.slf4j", "log4j-over-slf4j", "1.7.5"),
 
-        	            mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.0.6"),
-        	            mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.8.12"),
-                        mavenBundle("org.apache.felix", "org.apache.felix.metatype", "1.1.2"),
+        	            mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.0"),
+        	            mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.2"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.metatype", "1.2.0"),
         	        	mavenBundle("org.apache.sling", "org.apache.sling.installer.core", POM_VERSION).startLevel(5),
                         mavenBundle("org.apache.sling", "org.apache.sling.installer.factory.configuration", CONFIG_VERSION).startLevel(5)
         		)
@@ -610,7 +610,7 @@ public class OsgiInstallerTestBase implements FrameworkListener {
 
     private final class BundleEventListener implements SynchronousBundleListener {
 
-        private final List<BundleEvent> events = new ArrayList<BundleEvent>();
+        private final List<BundleEvent> events = new ArrayList<>();
 
         @Override
         public void bundleChanged(org.osgi.framework.BundleEvent event) {
