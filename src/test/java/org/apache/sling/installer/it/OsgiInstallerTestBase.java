@@ -70,7 +70,7 @@ import org.osgi.util.tracker.ServiceTracker;
 /** Base class for OsgiInstaller testing */
 public class OsgiInstallerTestBase implements FrameworkListener {
 	private final static String POM_VERSION = System.getProperty("osgi.installer.pom.version", "POM_VERSION_NOT_SET");
-    private final static String CONFIG_VERSION = System.getProperty("installer.configuration.version", "INSTALLER_VERSION_NOT_SET");
+    public final static String CONFIG_VERSION = System.getProperty("installer.configuration.version", "INSTALLER_VERSION_NOT_SET");
 
 	public final static String JAR_EXT = ".jar";
 	private volatile int packageRefreshEventsCount;
