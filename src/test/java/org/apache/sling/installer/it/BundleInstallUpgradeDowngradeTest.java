@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import org.apache.sling.installer.api.InstallableResource;
-import org.apache.sling.installer.it.OsgiInstallerTestBase.BundleEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,12 +35,13 @@ public class BundleInstallUpgradeDowngradeTest extends OsgiInstallerTestBase {
     public Option[] config() {
         return defaultConfiguration();
     }
-    
+
     @Before
     public void setUp() {
         setupInstaller();
     }
 
+    @Override
     @After
     public void tearDown() {
         super.tearDown();
@@ -211,7 +211,7 @@ public class BundleInstallUpgradeDowngradeTest extends OsgiInstallerTestBase {
     }
 
     /**
-     * This test class assures that whenever a new bundle is 
+     * This test class assures that whenever a new bundle is
      * provided with the same url as an already installed bundle,
      * the already installed bundle is uninstalled and the new one installed.
      * @see <a href="https://issues.apache.org/jira/browse/SLING-6392">SLING-6392</a>
@@ -221,7 +221,7 @@ public class BundleInstallUpgradeDowngradeTest extends OsgiInstallerTestBase {
         final String symbolicName = "osgi-installer-testbundle";
         final String symbolicName2 = "osgi-installer-testA";
         final String installableResourceId = "stable-id";
-        
+
         assertNull("Test bundle must not be present before test", findBundle(symbolicName));
         assertNull("Test A bundle must not be present before test", findBundle(symbolicName2));
         {

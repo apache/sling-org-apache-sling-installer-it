@@ -141,6 +141,30 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
             assertEquals(FACTORY_PID, c1.getFactoryPid());
             assertEquals(Boolean.TRUE, c.getProperties().get("modified"));
         }
+        
+        // make sure there is only one state in the OSGi installer
+        final InfoProvider infoProvider = getService(InfoProvider.class);
+        ResourceGroup found = null;
+        final InstallationState state = infoProvider.getInstallationState();
+        for(final ResourceGroup group : state.getInstalledResources()) {
+            for(final Resource rsrc : group.getResources()) {
+                if ( rsrc.getScheme().equals(SCHEME) && rsrc.getURL().equals(SCHEME + ":" + "configs/" + FACTORY_PID + "-" + name + ".cfg")) {
+                    found = group;
+                    break;
+                }
+            }
+            if ( found != null ) {
+                break;
+            }
+        }        
+        assertNotNull(found);
+        assertEquals(1, found.getResources().size());
+        final Resource r = found.getResources().get(0);
+        if ( checkNew ) {
+            assertEquals("config:" + FACTORY_PID + "~" + name, r.getEntityId());
+        } else {
+            assertEquals("config:" + FACTORY_PID + "." + name, r.getEntityId());
+        }
     }
 
     @Override

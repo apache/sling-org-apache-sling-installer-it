@@ -73,8 +73,8 @@ public class BundleInstallUpgradeExceptionRetryTest extends OsgiInstallerTestBas
 	@Test
 	public void testUpdateFailsWithMoreThanMaxRetrys() throws Exception {
 		// install version 1.1 and fail activation with exception all attempts
-		final Object listener = this.startObservingBundleEvents();
-		final AtomicReference<ServiceRegistration<AtomicInteger>> ref = new AtomicReference<ServiceRegistration<AtomicInteger>>(
+		this.startObservingBundleEvents();
+		final AtomicReference<ServiceRegistration<AtomicInteger>> ref = new AtomicReference<>(
 				null);
 		final AtomicInteger counter = new AtomicInteger(5);
 		bundleContext.addBundleListener(new SynchronousBundleListener() {
@@ -124,8 +124,8 @@ public class BundleInstallUpgradeExceptionRetryTest extends OsgiInstallerTestBas
 	@Test
 	public void testUpdateSuccedsWithLessThanMaxRetrys() throws Exception {
 		// install version 1.1 and fail activation with exception all attempts
-		final Object listener = this.startObservingBundleEvents();
-		final AtomicReference<ServiceRegistration<AtomicInteger>> ref = new AtomicReference<ServiceRegistration<AtomicInteger>>(
+		this.startObservingBundleEvents();
+		final AtomicReference<ServiceRegistration<AtomicInteger>> ref = new AtomicReference<>(
 				null);
 		final AtomicInteger counter = new AtomicInteger(3);
 		bundleContext.addBundleListener(new SynchronousBundleListener() {
@@ -175,14 +175,14 @@ public class BundleInstallUpgradeExceptionRetryTest extends OsgiInstallerTestBas
 		return createBundle("testbundle", manifest, ThrowingActivator.class);
 	}
 
-	private static File createBundle(String name, String manifest, Class... classes) throws IOException {
+	private static File createBundle(String name, String manifest, Class<?>... classes) throws IOException {
 		File f = File.createTempFile(name, ".jar");
 		f.deleteOnExit();
 
 		Manifest mf = new Manifest(new ByteArrayInputStream(manifest.getBytes("utf-8")));
 		JarOutputStream os = new JarOutputStream(new FileOutputStream(f), mf);
 
-		for (Class clazz : classes) {
+		for (Class<?> clazz : classes) {
 			String path = clazz.getName().replace('.', '/') + ".class";
 			os.putNextEntry(new ZipEntry(path));
 
