@@ -41,12 +41,13 @@ import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
- 
+
 /**
  * This test tests updating the configuration factory bundle from a pre 1.2.0 version to a 1.2.0+
  * version which is using the support for named factory configurations of Configuration Admin 1.6.0+.
@@ -145,9 +146,9 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
             assertEquals(c.getPid(), c1.getPid());
         }
         if ( modifiedExists ) {
-            assertEquals(Boolean.TRUE, c.getProperties().get("modified"));            
+            assertEquals(Boolean.TRUE, c.getProperties().get("modified"));
         } else {
-            assertNull(c.getProperties().get("modified"));            
+            assertNull(c.getProperties().get("modified"));
         }
         return c;
     }
@@ -182,14 +183,19 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     @Override
     @After
     public void tearDown() {
+
         try {
+            // stop configuration factory
+            getConfigFactoryBundle().stop();
+
+            // remove all configurations
             final Configuration[] cfgs = this.getService(ConfigurationAdmin.class).listConfigurations(null);
             if ( cfgs != null ) {
                 for(final Configuration c : cfgs) {
                     c.delete();
                 }
             }
-        } catch ( final IOException | InvalidSyntaxException ignore) {
+        } catch ( final IOException | BundleException | InvalidSyntaxException ignore) {
             // ignore
         }
         super.tearDown();
@@ -320,7 +326,7 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
      * - update the configuration factory bundle
      * - manual delete of that configuration through config admin
      */
-    /*@Test*/ public void testManualDeleteWithoutConversion() throws Exception {
+    @Test public void testManualDeleteWithoutConversion() throws Exception {
         testBundleUpdate();
 
         final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
@@ -348,7 +354,7 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
      * - manual update of that configuration through config admin
      * - manual delete of that configuration through config admin
      */
-    /*@Test*/ public void testManualUpdateAndDeleteWithoutConversion() throws Exception {
+    @Test public void testManualUpdateAndDeleteWithoutConversion() throws Exception {
         testManualUpdateWithoutConversion();
 
         final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
@@ -362,10 +368,10 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
         // config should be reverted
-        assertConfig(NAME_1, true);
+        assertConfig(NAME_1, true, false);
         assertInstallerState(NAME_1, true, ResourceState.INSTALLED);
     }
-    
+
     /**
      * This test does
      * - install a factory configuration
