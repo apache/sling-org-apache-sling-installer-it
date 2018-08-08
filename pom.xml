@@ -475,6 +475,10 @@
             <scope>provided</scope>
         </dependency>          
         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.ops4j.pax.exam</groupId>
             <artifactId>pax-exam-container-native</artifactId>
             <version>${exam.version}</version>
@@ -508,10 +512,6 @@
             <artifactId>org.apache.felix.framework</artifactId>
             <version>5.6.1</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
         </dependency>
     </dependencies>
 </project>
