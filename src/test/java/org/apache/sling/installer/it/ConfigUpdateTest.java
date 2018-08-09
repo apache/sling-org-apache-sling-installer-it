@@ -20,7 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 
 import org.apache.sling.installer.api.tasks.ResourceState;
 import org.junit.After;
@@ -283,12 +285,16 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     @Test public void testManualConfigurations() throws Exception {
         this.util.installTestConfigs();
 
+        final Set<String> expectedPids = new HashSet<>();
+
         // create two factory configurations, one with R6 and one with R7 API
         final Configuration c1 = this.configAdmin.getFactoryConfiguration(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, "c1", null);
+        expectedPids.add(c1.getPid());
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put("id", "c1");
         c1.update(props);
         final Configuration c2 = this.configAdmin.createFactoryConfiguration(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, null);
+        expectedPids.add(c2.getPid());
         props.put("id", "c2");
         c2.update(props);
 
@@ -297,7 +303,9 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         // there should still be exactly two factory configs
         final Configuration[] cfgs = this.configAdmin.listConfigurations("(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.MANUAL_FACTORY_PID + ")");
         assertEquals(2, cfgs.length);
-
+        for(final Configuration c : cfgs) {
+            assertTrue(expectedPids.contains(c.getPid()));
+        }
         // and no installer state
         this.util.assertInstallerState(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, 0);
 
@@ -310,6 +318,9 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         // still two configurations
         final Configuration[] cfgs2 = this.configAdmin.listConfigurations("(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.MANUAL_FACTORY_PID + ")");
         assertEquals(2, cfgs2.length);
+        for(final Configuration c : cfgs2) {
+            assertTrue(expectedPids.contains(c.getPid()));
+        }
         // and no installer state
         this.util.assertInstallerState(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, 0);
 
