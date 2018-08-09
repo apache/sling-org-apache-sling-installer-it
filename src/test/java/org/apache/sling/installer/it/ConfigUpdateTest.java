@@ -16,35 +16,19 @@
  */
 package org.apache.sling.installer.it;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.sling.installer.api.InstallableResource;
-import org.apache.sling.installer.api.event.InstallationEvent;
-import org.apache.sling.installer.api.event.InstallationListener;
-import org.apache.sling.installer.api.info.InfoProvider;
-import org.apache.sling.installer.api.info.InstallationState;
-import org.apache.sling.installer.api.info.Resource;
-import org.apache.sling.installer.api.info.ResourceGroup;
 import org.apache.sling.installer.api.tasks.ResourceState;
-import org.apache.sling.installer.api.tasks.TaskResource;
-import static org.junit.Assert.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleException;
-import org.osgi.framework.Constants;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 
@@ -55,149 +39,30 @@ import org.osgi.service.cm.ConfigurationAdmin;
 @RunWith(PaxExam.class)
 public class ConfigUpdateTest extends OsgiInstallerTestBase {
 
-    static private final String GROUP_ID = "org.apache.sling";
-    static private final String ARTIFACT_ID = "org.apache.sling.installer.factory.configuration";
-    static private final String OLD_VERSION = "1.1.2";
+    private ConfigUpdateTestUtil util;
 
-    private static final String FACTORY_PID = "org.apache.sling.factory.test";
-    private static final String NAME_1 = "myname1";
-
-    private static final String SCHEME = "myscheme";
+    private ConfigurationAdmin configAdmin;
 
     @org.ops4j.pax.exam.Configuration
     public Option[] config() {
         return defaultConfiguration();
     }
 
-    private Bundle getConfigFactoryBundle() {
-        for(final Bundle b : this.bundleContext.getBundles()) {
-            if ( ARTIFACT_ID.equals(b.getSymbolicName())) {
-                return b;
-            }
-        }
-        throw new IllegalStateException("Config factory bundle not found");
-    }
-
-    private void updateConfigFactoryBundle() throws Exception {
-        final Bundle b = getConfigFactoryBundle();
-        b.stop();
-        final String urlString = org.ops4j.pax.exam.CoreOptions.mavenBundle(GROUP_ID, ARTIFACT_ID, OsgiInstallerTestBase.CONFIG_VERSION).getURL();
-        final URL url = new URL(urlString);
-        try ( final InputStream is = url.openStream()) {
-            b.update(is);
-        }
-        b.start();
-    }
-
     @Before
     public void setUp() throws Exception {
-        // we need the old config factory first
-        final Bundle b = getConfigFactoryBundle();
-        b.stop();
-        final String urlString = org.ops4j.pax.exam.CoreOptions.mavenBundle(GROUP_ID, ARTIFACT_ID, OLD_VERSION).getURL();
-        final URL url = new URL(urlString);
-        try ( final InputStream is = url.openStream()) {
-            b.update(is);
-        }
-        b.start();
+        // instantiate util and downgrade factory config bundle to 1.x
+        this.util = new ConfigUpdateTestUtil(this.bundleContext);
+
         super.setup();
         setupInstaller();
-    }
-
-    private InstallableResource[] createTestConfigs() {
-        final Dictionary<String, Object> props = new Hashtable<>();
-        props.put("key", "value");
-        props.put("id", NAME_1);
-
-        // we need to specify a path as config factory < 1.2.0 has a bug in handling the id if a path is missing
-        final InstallableResource rsrc = new InstallableResource("configs/" + FACTORY_PID + "-" + NAME_1 + ".cfg",
-                null, props, "1", InstallableResource.TYPE_CONFIG, null);
-
-        return new InstallableResource[] {rsrc};
-    }
-
-    private Configuration assertConfig(final String name, final boolean checkNew) throws Exception {
-        return assertConfig(name, checkNew, checkNew);
-    }
-
-    private Configuration assertConfig(final String name, final boolean checkNew, final boolean modifiedExists) throws Exception {
-        final ConfigurationAdmin ca = this.getService(ConfigurationAdmin.class);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-            "(id=" + name + "))");
-        assertNotNull(cfgs);
-        assertEquals(1, cfgs.length);
-        final Configuration c = cfgs[0];
-        assertEquals("value", c.getProperties().get("key"));
-        assertEquals(name, c.getProperties().get("id"));
-
-        if ( !checkNew) {
-            assertFalse(c.getPid().equals(FACTORY_PID + "~" + name));
-            final Configuration[] cfgs1 = ca.listConfigurations("(" + Constants.SERVICE_PID + "=" + FACTORY_PID + "~" + name + ")");
-            assertTrue(cfgs1 == null || cfgs1.length == 0);
-        }
-        if ( checkNew) {
-            final Configuration[] cfgs1 = ca.listConfigurations("(" + Constants.SERVICE_PID + "=" + FACTORY_PID + "~" + name + ")");
-            assertNotNull(cfgs1);
-            assertEquals(1, cfgs1.length);
-            final Configuration c1 = cfgs1[0];
-            assertEquals("value", c1.getProperties().get("key"));
-            assertEquals(name, c1.getProperties().get("id"));
-            assertEquals(FACTORY_PID, c1.getFactoryPid());
-            assertEquals(c.getPid(), c1.getPid());
-        }
-        if ( modifiedExists ) {
-            assertEquals(Boolean.TRUE, c.getProperties().get("modified"));
-        } else {
-            assertNull(c.getProperties().get("modified"));
-        }
-        return c;
-    }
-
-    private void assertInstallerState(final String name, final boolean checkNew, final ResourceState expectedState) throws Exception {
-        // make sure there is only one state in the OSGi installer
-        final InfoProvider infoProvider = getService(InfoProvider.class);
-        ResourceGroup found = null;
-        final InstallationState state = infoProvider.getInstallationState();
-        for(final ResourceGroup group : state.getInstalledResources()) {
-            for(final Resource rsrc : group.getResources()) {
-                if ( rsrc.getScheme().equals(SCHEME) && rsrc.getURL().equals(SCHEME + ":" + "configs/" + FACTORY_PID + "-" + name + ".cfg")) {
-                    found = group;
-                    break;
-                }
-            }
-            if ( found != null ) {
-                break;
-            }
-        }
-        assertNotNull(found);
-        assertEquals(1, found.getResources().size());
-        final Resource r = found.getResources().get(0);
-        if ( checkNew ) {
-            assertEquals("config:" + FACTORY_PID + "~" + name, r.getEntityId());
-        } else {
-            assertEquals("config:" + FACTORY_PID + "." + name, r.getEntityId());
-        }
-        assertEquals(expectedState, r.getState());
+        this.configAdmin = this.waitForConfigAdmin(true);
+        this.util.init(this.configAdmin, this.installer, this.infoProvider);
     }
 
     @Override
     @After
     public void tearDown() {
-
-        try {
-            // stop configuration factory
-            getConfigFactoryBundle().stop();
-
-            // remove all configurations
-            final Configuration[] cfgs = this.getService(ConfigurationAdmin.class).listConfigurations(null);
-            if ( cfgs != null ) {
-                for(final Configuration c : cfgs) {
-                    c.delete();
-                }
-            }
-        } catch ( final IOException | BundleException | InvalidSyntaxException ignore) {
-            // ignore
-        }
+        this.util.tearDown();
         super.tearDown();
     }
 
@@ -205,93 +70,58 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
      * Simply updating the bundle should not change anything
      */
     @Test public void testBundleUpdate() throws Exception {
-        final InstallableResource[] resources = createTestConfigs();
-        final ResourceInstallationListener listener = new ResourceInstallationListener(resources.length);
-        final ServiceRegistration<InstallationListener> reg = this.bundleContext.registerService(InstallationListener.class, listener, null);
-        try {
-            installer.registerResources(SCHEME, resources);
+        this.util.installTestConfigs();
 
-            listener.waitForInstall();
-        } finally {
-            reg.unregister();
-        }
         // check for configuration
-        assertConfig(NAME_1, false);
-        assertInstallerState(NAME_1, false, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, false);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, false, ResourceState.INSTALLED);
 
-        updateConfigFactoryBundle();
+        this.util.updateConfigFactoryBundle();
 
-        assertConfig(NAME_1, false);
-        assertInstallerState(NAME_1, false, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, false);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, false, ResourceState.INSTALLED);
     }
 
     /**
      * Simply updating the bundle and then updating the config with the same contents should not change anything
      */
     @Test public void testBundleAndConfigRegisterWithoutChange() throws Exception {
-        testBundleUpdate();
+        this.testBundleUpdate();
 
-        final InstallableResource[] resources = createTestConfigs();
-        final ResourceInstallationListener listener = new ResourceInstallationListener(resources.length);
-        final ServiceRegistration<InstallationListener> reg = this.bundleContext.registerService(InstallationListener.class, listener, null);
-        try {
-            installer.registerResources(SCHEME, resources);
+        // register configuration again (unchanged)
+        this.util.installTestConfigs();
 
-            listener.waitForInstall();
-        } finally {
-            reg.unregister();
-        }
         // check for configuration
-        assertConfig(NAME_1, false);
-        assertInstallerState(NAME_1, false, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, false);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, false, ResourceState.INSTALLED);
     }
 
     /**
      * Updating the bundle and then updating the config with a new config should convert the configurations
      */
     @Test public void testBundleAndConfigRegisterWithChange() throws Exception {
-        testBundleUpdate();
+        this.testBundleUpdate();
 
-        final InstallableResource[] resources = createTestConfigs();
-        for(final InstallableResource rsrc : resources) {
-            rsrc.getDictionary().put("modified", Boolean.TRUE);
-        }
-        final ResourceInstallationListener listener = new ResourceInstallationListener(resources.length);
-        final ServiceRegistration<InstallationListener> reg = this.bundleContext.registerService(InstallationListener.class, listener, null);
-        try {
-            installer.registerResources(SCHEME, resources);
+        // register configuration again (changed - using registerResources)
+        this.util.installModifiedTestConfigs(true);
 
-            listener.waitForInstall();
-        } finally {
-            reg.unregister();
-        }
         // check for configuration
-        assertConfig(NAME_1, true);
-        assertInstallerState(NAME_1, true, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 
     /**
      * Updating the bundle and then updating the config with a new config should convert the configurations
      */
     @Test public void testBundleAndConfigUpdateWithChange() throws Exception {
-        testBundleUpdate();
+        this.testBundleUpdate();
 
-        final InstallableResource[] resources = createTestConfigs();
-        for(final InstallableResource rsrc : resources) {
-            rsrc.getDictionary().put("modified", Boolean.TRUE);
-        }
-        final ResourceInstallationListener listener = new ResourceInstallationListener(resources.length);
-        final ServiceRegistration<InstallationListener> reg = this.bundleContext.registerService(InstallationListener.class, listener, null);
-        try {
-            installer.updateResources(SCHEME, resources, null);
+        // register configuration again (changed - using updateResources)
+        this.util.installModifiedTestConfigs(false);
 
-            listener.waitForInstall();
-        } finally {
-            reg.unregister();
-        }
         // check for configuration
-        assertConfig(NAME_1, true);
-        assertInstallerState(NAME_1, true, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 
     /**
@@ -301,11 +131,10 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
      * - manual update of that configuration through config admin
      */
     @Test public void testManualUpdateWithoutConversion() throws Exception {
-        testBundleUpdate();
+        this.testBundleUpdate();
 
-        final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         // we know it's just one config
         final Configuration c = cfgs[0];
         final Dictionary<String, Object> props = c.getProperties();
@@ -315,9 +144,9 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         // the update is processed async, so we should give the installer parts some time to process
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
-        final Configuration cUp = assertConfig(NAME_1, true, false);
+        final Configuration cUp = this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true, false);
         assertEquals("helloworld", cUp.getProperties().get("another"));
-        assertInstallerState(NAME_1, true, ResourceState.IGNORED);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.IGNORED);
     }
 
     /**
@@ -329,9 +158,8 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     @Test public void testManualDeleteWithoutConversion() throws Exception {
         testBundleUpdate();
 
-        final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         // we know it's just one config
         final Configuration c = cfgs[0];
         c.delete();
@@ -340,11 +168,11 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
         // config should be deleted
-        final Configuration[] cfgs2 = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs2 = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         assertTrue(cfgs2 == null || cfgs2.length == 0);
         // state should be ignored
-        assertInstallerState(NAME_1, true, ResourceState.IGNORED);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.IGNORED);
     }
 
     /**
@@ -357,9 +185,8 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     @Test public void testManualUpdateAndDeleteWithoutConversion() throws Exception {
         testManualUpdateWithoutConversion();
 
-        final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         // we know it's just one config
         final Configuration c = cfgs[0];
         c.delete();
@@ -368,8 +195,8 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
         // config should be reverted
-        assertConfig(NAME_1, true, false);
-        assertInstallerState(NAME_1, true, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true, false);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 
     /**
@@ -382,9 +209,8 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     @Test public void testManualUpdateAfterConversion() throws Exception {
         testBundleAndConfigUpdateWithChange();
 
-        final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         // we know it's just one config
         final Configuration c = cfgs[0];
         final Dictionary<String, Object> props = c.getProperties();
@@ -394,9 +220,9 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         // the update is processed async, so we should give the installer parts some time to process
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
-        final Configuration cUp = assertConfig(NAME_1, true);
+        final Configuration cUp = this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true);
         assertEquals("helloworld", cUp.getProperties().get("another"));
-        assertInstallerState(NAME_1, true, ResourceState.IGNORED);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.IGNORED);
     }
 
     /**
@@ -407,11 +233,10 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
      * - manual delete of that configuration through config admin
      */
     @Test public void testManualDeleteAfterConversion() throws Exception {
-        testBundleAndConfigUpdateWithChange();
+        this.testBundleAndConfigUpdateWithChange();
 
-        final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         // we know it's just one config
         final Configuration c = cfgs[0];
         c.delete();
@@ -420,11 +245,11 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
         // config should be deleted
-        final Configuration[] cfgs2 = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs2 = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         assertTrue(cfgs2 == null || cfgs2.length == 0);
         // state should be ignored
-        assertInstallerState(NAME_1, true, ResourceState.IGNORED);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.IGNORED);
     }
 
     /**
@@ -438,9 +263,8 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     @Test public void testManualUpdateAndDeleteAfterConversion() throws Exception {
         testManualUpdateAfterConversion();
 
-        final ConfigurationAdmin ca = this.waitForConfigAdmin(true);
-        final Configuration[] cfgs = ca.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + FACTORY_PID + ")" +
-                "(id=" + NAME_1 + "))");
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(&(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.FACTORY_PID + ")" +
+                "(id=" + ConfigUpdateTestUtil.NAME_1 + "))");
         // we know it's just one config
         final Configuration c = cfgs[0];
         c.delete();
@@ -449,64 +273,53 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         this.sleep(5000); // TODO - Can we wait for an event instead?
 
         // config should be reverted
-        assertConfig(NAME_1, true);
-        assertInstallerState(NAME_1, true, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 
-    private class ResourceInstallationListener implements InstallationListener {
+    /**
+     * Create a factory configuration before the update
+     */
+    @Test public void testManualConfigurations() throws Exception {
+        this.util.installTestConfigs();
 
-        private final AtomicInteger processedBundles = new AtomicInteger(0);
-        private final AtomicBoolean doneProcessing = new AtomicBoolean(false);
+        // create two factory configurations, one with R6 and one with R7 API
+        final Configuration c1 = this.configAdmin.getFactoryConfiguration(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, "c1", null);
+        final Dictionary<String, Object> props = new Hashtable<>();
+        props.put("id", "c1");
+        c1.update(props);
+        final Configuration c2 = this.configAdmin.createFactoryConfiguration(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, null);
+        props.put("id", "c2");
+        c2.update(props);
 
-        private final int count;
+        this.util.updateConfigFactoryBundle();
 
-        public ResourceInstallationListener(final int count) {
-            this.count = count;
+        // there should still be exactly two factory configs
+        final Configuration[] cfgs = this.configAdmin.listConfigurations("(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.MANUAL_FACTORY_PID + ")");
+        assertEquals(2, cfgs.length);
+
+        // and no installer state
+        this.util.assertInstallerState(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, 0);
+
+        // updating the configs should not change the state
+        for(final Configuration c : cfgs) {
+            final Dictionary<String, Object> p = c.getProperties();
+            p.put("modified", "true");
+            c.update(p);
         }
+        // still two configurations
+        final Configuration[] cfgs2 = this.configAdmin.listConfigurations("(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.MANUAL_FACTORY_PID + ")");
+        assertEquals(2, cfgs2.length);
+        // and no installer state
+        this.util.assertInstallerState(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, 0);
 
-        @Override
-        public void onEvent(final InstallationEvent event) {
-            if ( event.getType() == InstallationEvent.TYPE.PROCESSED ) {
-                final TaskResource rsrc = (TaskResource) event.getSource();
-                if ( rsrc.getScheme().equals(SCHEME) ) {
-                    if ( rsrc.getState() == ResourceState.IGNORED || rsrc.getState() == ResourceState.INSTALLED ) {
-                        processedBundles.incrementAndGet();
-                    }
-                }
-            } else if ( event.getType() == InstallationEvent.TYPE.SUSPENDED && processedBundles.get() > 0 ) {
-                doneProcessing.set(true);
-            }
-
+        // delete should not change installer state
+        for(final Configuration c : cfgs2) {
+            c.delete();
         }
-
-        public void waitForInstall() {
-            final long startTime = System.currentTimeMillis();
-            while ( !doneProcessing.get() && startTime + 10000 > System.currentTimeMillis() ) {
-                sleep(200);
-            }
-            if ( processedBundles.get() < count ) {
-                final InfoProvider infoProvider = getService(InfoProvider.class);
-                int bundlesCount = 0;
-                while ( bundlesCount < count ) {
-                    bundlesCount = 0;
-                    final InstallationState state = infoProvider.getInstallationState();
-                    for(final ResourceGroup group : state.getInstalledResources()) {
-                        for(final Resource rsrc : group.getResources()) {
-                            if ( rsrc.getScheme().equals(SCHEME) ) {
-                                bundlesCount++;
-                            }
-                        }
-                    }
-                    for(final ResourceGroup group : state.getActiveResources()) {
-                        for(final Resource rsrc : group.getResources()) {
-                            if ( rsrc.getScheme().equals(SCHEME) ) {
-                                bundlesCount++;
-                            }
-                        }
-                    }
-                    sleep(200);
-                }
-            }
-        }
+        final Configuration[] cfgs3 = this.configAdmin.listConfigurations("(" + ConfigurationAdmin.SERVICE_FACTORYPID + "=" + ConfigUpdateTestUtil.MANUAL_FACTORY_PID + ")");
+        assertTrue(cfgs3 == null || cfgs3.length == 0);
+        // and no installer state
+        this.util.assertInstallerState(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, 0);
     }
 }
