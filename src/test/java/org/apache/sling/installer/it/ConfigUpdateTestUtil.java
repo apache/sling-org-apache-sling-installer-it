@@ -16,8 +16,6 @@
  */
 package org.apache.sling.installer.it;
 
-import static org.junit.Assert.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -25,7 +23,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import static org.junit.Assert.*;
 import org.apache.sling.installer.api.InstallableResource;
 import org.apache.sling.installer.api.OsgiInstaller;
 import org.apache.sling.installer.api.event.InstallationEvent;
@@ -35,6 +33,7 @@ import org.apache.sling.installer.api.info.InstallationState;
 import org.apache.sling.installer.api.info.Resource;
 import org.apache.sling.installer.api.info.ResourceGroup;
 import org.apache.sling.installer.api.tasks.ResourceState;
+import org.apache.sling.installer.api.tasks.ResourceTransformer;
 import org.apache.sling.installer.api.tasks.TaskResource;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -44,6 +43,7 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.util.tracker.ServiceTracker;
 
 /**
  * Utility methods for {@link ConfigUpdateTest}.
@@ -61,6 +61,8 @@ public class ConfigUpdateTestUtil {
 
     public static final String SCHEME = "myscheme";
 
+    public static final String OVERLAY_SCHEME = "overlay";
+
     private final BundleContext bundleContext;
 
     private ConfigurationAdmin configAdmin;
@@ -68,7 +70,7 @@ public class ConfigUpdateTestUtil {
     private InfoProvider infoProvider;
 
     private OsgiInstaller installer;
-    
+
     public ConfigUpdateTestUtil(final BundleContext ctx) throws Exception {
         this.bundleContext = ctx;
         // we need the old config factory first
@@ -82,8 +84,8 @@ public class ConfigUpdateTestUtil {
         b.start();
     }
 
-    public void init(final ConfigurationAdmin configAdmin, 
-            final OsgiInstaller installer, 
+    public void init(final ConfigurationAdmin configAdmin,
+            final OsgiInstaller installer,
             final InfoProvider infoProvider) {
         this.configAdmin = configAdmin;
         this.installer = installer;
@@ -118,16 +120,28 @@ public class ConfigUpdateTestUtil {
             b.update(is);
         }
         b.start();
+        // wait for resource transformer  to be registered
+        final ServiceTracker<ResourceTransformer, ResourceTransformer> tracker = new ServiceTracker<>(bundleContext, 
+                bundleContext.createFilter("(&(" + Constants.OBJECTCLASS + "=" + ResourceTransformer.class.getName() + ")" +
+                         "(" + ResourceTransformer.NAME + "=org.osgi.service.cm))"),
+                null);
+        tracker.open();
+        tracker.waitForService(10000);
+        tracker.close();
     }
 
     public InstallableResource[] createTestConfigResources() {
+        return createTestConfigResources(null);
+    }
+
+    public InstallableResource[] createTestConfigResources(final Integer prio) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put("key", "value");
         props.put("id", NAME_1);
 
         // we need to specify a path as config factory < 1.2.0 has a bug in handling the id if a path is missing
         final InstallableResource rsrc = new InstallableResource("configs/" + FACTORY_PID + "-" + NAME_1 + ".cfg",
-                null, props, "1", InstallableResource.TYPE_CONFIG, null);
+                null, props, "1", InstallableResource.TYPE_CONFIG, prio);
 
         return new InstallableResource[] {rsrc};
     }
@@ -138,6 +152,22 @@ public class ConfigUpdateTestUtil {
         final ServiceRegistration<InstallationListener> reg = this.bundleContext.registerService(InstallationListener.class, listener, null);
         try {
             installer.registerResources(SCHEME, resources);
+
+            listener.waitForInstall();
+        } finally {
+            reg.unregister();
+        }
+    }
+
+    public void installOverlayTestConfigs() {
+        final InstallableResource[] resources = createTestConfigResources(200);
+        for(final InstallableResource rsrc : resources) {
+            rsrc.getDictionary().put("overlay", Boolean.TRUE);
+        }
+        final ResourceInstallationListener listener = new ResourceInstallationListener(OVERLAY_SCHEME, resources.length);
+        final ServiceRegistration<InstallationListener> reg = this.bundleContext.registerService(InstallationListener.class, listener, null);
+        try {
+            installer.registerResources(OVERLAY_SCHEME, resources);
 
             listener.waitForInstall();
         } finally {
@@ -161,9 +191,9 @@ public class ConfigUpdateTestUtil {
             listener.waitForInstall();
         } finally {
             reg.unregister();
-        }        
+        }
     }
-    
+
     public Configuration assertTestConfig(final String name, final boolean checkNew) throws Exception {
         return assertTestConfig(name, checkNew, checkNew);
     }
@@ -200,7 +230,37 @@ public class ConfigUpdateTestUtil {
         return c;
     }
 
-    public void assertInstallerState(final String name, final boolean checkNew, final ResourceState expectedState) throws Exception {
+    public void assertOverlayInstallerState(final String name,
+            final boolean checkNew,
+            final ResourceState expectedState) throws Exception {
+        ResourceGroup found = null;
+        final InstallationState state = this.infoProvider.getInstallationState();
+        for(final ResourceGroup group : state.getInstalledResources()) {
+            for(final Resource rsrc : group.getResources()) {
+                if ( rsrc.getScheme().equals(SCHEME) && rsrc.getURL().equals(SCHEME + ":" + "configs/" + FACTORY_PID + "-" + name + ".cfg")) {
+                    found = group;
+                    break;
+                }
+            }
+            if ( found != null ) {
+                break;
+            }
+        }
+        assertNotNull(found);
+        assertEquals(2, found.getResources().size());
+        final Resource r = found.getResources().get(0);
+        if ( checkNew ) {
+            assertEquals("config:" + FACTORY_PID + "~" + name, r.getEntityId());
+        } else {
+            assertEquals("config:" + FACTORY_PID + "." + name, r.getEntityId());
+        }
+        assertEquals(expectedState, r.getState());
+        assertEquals(OVERLAY_SCHEME, r.getScheme());
+    }
+
+    public void assertInstallerState(final String name,
+            final boolean checkNew,
+            final ResourceState expectedState) throws Exception {
         // make sure there is only one state in the OSGi installer
         ResourceGroup found = null;
         final InstallationState state = this.infoProvider.getInstallationState();
@@ -227,7 +287,6 @@ public class ConfigUpdateTestUtil {
     }
 
     public void assertInstallerState(final String factoryPID, final int count) throws Exception {
-        ResourceGroup found = null;
         int c = 0;
         final InstallationState state = this.infoProvider.getInstallationState();
         for(final ResourceGroup group : state.getInstalledResources()) {
@@ -266,7 +325,14 @@ public class ConfigUpdateTestUtil {
 
         private final int count;
 
+        private final String scheme;
+
         public ResourceInstallationListener(final int count) {
+            this(SCHEME, count);
+        }
+
+        public ResourceInstallationListener(final String scheme, final int count) {
+            this.scheme = scheme;
             this.count = count;
         }
 
@@ -274,7 +340,7 @@ public class ConfigUpdateTestUtil {
         public void onEvent(final InstallationEvent event) {
             if ( event.getType() == InstallationEvent.TYPE.PROCESSED ) {
                 final TaskResource rsrc = (TaskResource) event.getSource();
-                if ( rsrc.getScheme().equals(SCHEME) ) {
+                if ( rsrc.getScheme().equals(this.scheme) ) {
                     if ( rsrc.getState() == ResourceState.IGNORED || rsrc.getState() == ResourceState.INSTALLED ) {
                         processedBundles.incrementAndGet();
                     }
@@ -297,14 +363,14 @@ public class ConfigUpdateTestUtil {
                     final InstallationState state = infoProvider.getInstallationState();
                     for(final ResourceGroup group : state.getInstalledResources()) {
                         for(final Resource rsrc : group.getResources()) {
-                            if ( rsrc.getScheme().equals(SCHEME) ) {
+                            if ( rsrc.getScheme().equals(this.scheme) ) {
                                 bundlesCount++;
                             }
                         }
                     }
                     for(final ResourceGroup group : state.getActiveResources()) {
                         for(final Resource rsrc : group.getResources()) {
-                            if ( rsrc.getScheme().equals(SCHEME) ) {
+                            if ( rsrc.getScheme().equals(this.scheme) ) {
                                 bundlesCount++;
                             }
                         }

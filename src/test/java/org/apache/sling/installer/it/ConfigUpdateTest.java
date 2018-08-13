@@ -69,7 +69,10 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     }
 
     /**
-     * Simply updating the bundle should not change anything
+     * - Install test factory config
+     * - verify property installation in configadmin and proper state in installer
+     * - update installer config factory (update->convert)
+     * - verify updated factory config and proper state in installer
      */
     @Test public void testBundleUpdate() throws Exception {
         this.util.installTestConfigs();
@@ -80,12 +83,17 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
 
         this.util.updateConfigFactoryBundle();
 
-        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, false);
-        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, false, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true, false);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 
     /**
-     * Simply updating the bundle and then updating the config with the same contents should not change anything
+     * - Install test factory config
+     * - verify property installation in configadmin and proper state in installer
+     * - update installer config factory (update->convert)
+     * - verify updated factory config and proper state in installer
+     * - update factory config with same contents (no changes)
+     * - verify property installation in configadmin and proper state in installer
      */
     @Test public void testBundleAndConfigRegisterWithoutChange() throws Exception {
         this.testBundleUpdate();
@@ -94,12 +102,17 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         this.util.installTestConfigs();
 
         // check for configuration
-        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, false);
-        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, false, ResourceState.INSTALLED);
+        this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true, false);
+        this.util.assertInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 
     /**
-     * Updating the bundle and then updating the config with a new config should convert the configurations
+     * - Install test factory config
+     * - verify property installation in configadmin and proper state in installer
+     * - update installer config factory (update->convert)
+     * - verify updated factory config and proper state in installer
+     * - update factory config with new contents using register method
+     * - verify property installation in configadmin and proper state in installer
      */
     @Test public void testBundleAndConfigRegisterWithChange() throws Exception {
         this.testBundleUpdate();
@@ -113,7 +126,12 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     }
 
     /**
-     * Updating the bundle and then updating the config with a new config should convert the configurations
+     * - Install test factory config
+     * - verify property installation in configadmin and proper state in installer
+     * - update installer config factory (update->convert)
+     * - verify updated factory config and proper state in installer
+     * - update factory config with new contents using update metho
+     * - verify property installation in configadmin and proper state in installer
      */
     @Test public void testBundleAndConfigUpdateWithChange() throws Exception {
         this.testBundleUpdate();
@@ -127,10 +145,10 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
     }
 
     /**
-     * This test does
-     * - install a factory configuration
-     * - update the configuration factory bundle
-     * - manual update of that configuration through config admin
+     * This test
+     * - installs a factory configuration
+     * - updates the configuration factory bundle
+     * - manual updates of that configuration through config admin
      */
     @Test public void testManualUpdateWithoutConversion() throws Exception {
         this.testBundleUpdate();
@@ -332,5 +350,40 @@ public class ConfigUpdateTest extends OsgiInstallerTestBase {
         assertTrue(cfgs3 == null || cfgs3.length == 0);
         // and no installer state
         this.util.assertInstallerState(ConfigUpdateTestUtil.MANUAL_FACTORY_PID, 0);
+    }
+
+    /**
+     * This test does
+     * - install a factory configuration and an overlay
+     * - update the configuration factory bundle
+     * - update the factory configuration (no change)
+     * - update the overlay factory configuration (change)
+     * - delete the overlay factory configuration (change)
+     */
+    @Test public void testConfigurationOverlays() throws Exception {
+        // install factory configuration and overlay
+        this.util.installTestConfigs();
+        this.util.installOverlayTestConfigs();
+
+        // check for overlay configuration being active
+        final Configuration c1 = this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, false);
+        assertEquals(Boolean.TRUE, c1.getProperties().get("overlay"));
+        this.util.assertOverlayInstallerState(ConfigUpdateTestUtil.NAME_1, false, ResourceState.INSTALLED);
+
+        // update factory configuration bundle
+        this.util.updateConfigFactoryBundle();
+
+        // check for overlay configuration being active - using named factories
+        final Configuration c2 = this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true, false);
+        assertEquals(Boolean.TRUE, c2.getProperties().get("overlay"));
+        this.util.assertOverlayInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
+
+        // update the factory configuration (no change!)
+        this.util.installModifiedTestConfigs(false);
+
+        // check for overlay configuration being active - using named factories
+        final Configuration c3 = this.util.assertTestConfig(ConfigUpdateTestUtil.NAME_1, true, false);
+        assertEquals(Boolean.TRUE, c3.getProperties().get("overlay"));
+        this.util.assertOverlayInstallerState(ConfigUpdateTestUtil.NAME_1, true, ResourceState.INSTALLED);
     }
 }
