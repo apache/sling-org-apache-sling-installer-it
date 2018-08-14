@@ -108,7 +108,7 @@ public class BundleInstallUpgradeExceptionRetryTest extends OsgiInstallerTestBas
 
 		try {
 			long time = 0;
-			while (counter.get() >= 0 && time < 1000) {
+			while (counter.get() >= 0 && time < 5000) {
 				sleep(100);
 				time += 100;
 			}
