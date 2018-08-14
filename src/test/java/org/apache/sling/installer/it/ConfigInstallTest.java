@@ -16,6 +16,11 @@
  */
 package org.apache.sling.installer.it;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -44,16 +49,12 @@ import org.osgi.service.cm.ConfigurationListener;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 @RunWith(PaxExam.class)
 
 public class ConfigInstallTest extends OsgiInstallerTestBase implements ConfigurationListener {
 
-    private final List<ConfigurationEvent> events = new LinkedList<ConfigurationEvent>();
-    private final List<ServiceRegistration<?>> serviceRegistrations = new ArrayList<ServiceRegistration<?>>();
+    private final List<ConfigurationEvent> events = new LinkedList<>();
+    private final List<ServiceRegistration<?>> serviceRegistrations = new ArrayList<>();
     private volatile int installationEvents = 0;
     private static final AtomicInteger counter = new AtomicInteger();
 
@@ -107,7 +108,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallConfigWindowsPath() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
         assertNull("Config " + cfgPid + " must not be found before test", findConfiguration(cfgPid));
@@ -131,7 +132,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
 	@Test
     public void testInstallAndRemoveConfig() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
         assertNull("Config " + cfgPid + " must not be found before test", findConfiguration(cfgPid));
@@ -159,7 +160,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveConfigResource() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
 
@@ -172,7 +173,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         waitForConfigValue("After installing", cfgPid, "foo", "bar");
 
         // create second configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         final InstallableResource rsrc2 = new InstallableResource("/configB/" + cfgPid,
                 null, secondData, null, InstallableResource.TYPE_PROPERTIES, 20);
@@ -189,7 +190,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveTemplateConfigResource() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         cfgData.put(InstallableResource.RESOURCE_IS_TEMPLATE, "true");
         final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
@@ -203,7 +204,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         waitForConfigValue("After installing", cfgPid, "foo", "bar");
 
         // create second configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         final InstallableResource rsrc2 = new InstallableResource("/configB/" + cfgPid,
                 null, secondData, null, InstallableResource.TYPE_PROPERTIES, 20);
@@ -220,7 +221,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveConfigFactoryResource() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final String cfgFactoryPid = getClass().getSimpleName() + "." + uniqueID();
         final String alias = "alias" + uniqueID();
@@ -234,7 +235,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
         // create second factory configuration with same alias
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         final InstallableResource rsrc2 = new InstallableResource("/configB/" + cfgFactoryPid + "-" + alias,
                 null, secondData, null, InstallableResource.TYPE_PROPERTIES, 20);
@@ -251,7 +252,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveTemplateConfigFactoryResource() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         cfgData.put(InstallableResource.RESOURCE_IS_TEMPLATE, "true");
         final String cfgFactoryPid = getClass().getSimpleName() + "." + uniqueID();
@@ -266,7 +267,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
         // create second factory configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         final InstallableResource rsrc2 = new InstallableResource("/configB/" + cfgFactoryPid + "-" + alias,
                 null, secondData, null, InstallableResource.TYPE_PROPERTIES, 20);
@@ -283,7 +284,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveConfig() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
 
@@ -296,7 +297,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         final Configuration cfg = waitForConfigValue("After installing", cfgPid, "foo", "bar");
 
         // update configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
@@ -315,7 +316,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveTemplateConfig() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         cfgData.put(InstallableResource.RESOURCE_IS_TEMPLATE, "true");
         final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
@@ -329,7 +330,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         final Configuration cfg = waitForConfigValue("After installing", cfgPid, "foo", "bar");
 
         // update configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
@@ -349,7 +350,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveConfigFactory() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final String cfgFactoryPid = getClass().getSimpleName() + "." + uniqueID();
         final String alias = "alias" + uniqueID();
@@ -365,7 +366,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         final Configuration cfg = waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
         // update configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
@@ -383,7 +384,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testInstallUpdateRemoveTemplateConfigFactory() throws Exception {
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         cfgData.put(InstallableResource.RESOURCE_IS_TEMPLATE, "true");
         final String cfgFactoryPid = getClass().getSimpleName() + "." + uniqueID();
@@ -400,7 +401,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         final Configuration cfg = waitForFactoryConfigValue("After installing", cfgFactoryPid, "foo", "bar");
 
         // update configuration
-        final Dictionary<String, Object> secondData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> secondData = new Hashtable<>();
         secondData.put("foo", "bla");
         cfg.update(secondData);
 
@@ -428,7 +429,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         final String cfgPid = getClass().getSimpleName() + ".deferred." + uniqueID();
         assertNull("Config " + cfgPid + " must not be found before test", findConfiguration(cfgPid));
     	// create new configuration object
-    	final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+    	final Dictionary<String, Object> cfgData = new Hashtable<>();
     	cfgData.put("foo", "bar");
 
     	// Configuration installs must be deferred if ConfigAdmin service is stopped
@@ -455,7 +456,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
     public void testDeferredConfigRemove() throws Exception {
         final AtomicInteger transformerCount = new AtomicInteger();
 
-        final ServiceTracker<ResourceTransformer, ResourceTransformer> st = new ServiceTracker<ResourceTransformer, ResourceTransformer>(bundleContext,
+        final ServiceTracker<ResourceTransformer, ResourceTransformer> st = new ServiceTracker<>(bundleContext,
                 ResourceTransformer.class, new ServiceTrackerCustomizer<ResourceTransformer, ResourceTransformer>() {
 
             @Override
@@ -506,7 +507,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         assertNull("Config " + cfgPid + " must not be found before test", findConfiguration(cfgPid));
 
         // create and install new configuration object, verify
-        final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+        final Dictionary<String, Object> cfgData = new Hashtable<>();
         cfgData.put("foo", "bar");
         final InstallableResource[] rsrc = getInstallableResource(cfgPid, cfgData);
         installer.updateResources(URL_SCHEME, rsrc, null);
@@ -543,7 +544,7 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
 
     @Test
     public void testReinstallSameConfig() throws Exception {
-    	final Dictionary<String, Object> cfgData = new Hashtable<String, Object>();
+    	final Dictionary<String, Object> cfgData = new Hashtable<>();
     	cfgData.put("foo", "bar");
     	final String cfgPid = getClass().getSimpleName() + ".reinstall." + uniqueID();
     	assertNull("Config " + cfgPid + " must not be found before test", findConfiguration(cfgPid));
@@ -562,6 +563,27 @@ public class ConfigInstallTest extends OsgiInstallerTestBase implements Configur
         installer.updateResources(URL_SCHEME, getInstallableResource(cfgPid, cfgData), null);
         waitForConfigValue("After changing value", cfgPid, "foo", "changed");
         waitForCondition("Expected two ConfigurationEvents since beginning of test", new ConfigCondition(cfgPid, 2));
+    }
+
+    @Test
+    public void testInstallConfigJSON() throws Exception {
+        final String JSONConfig = "{\n" +
+                "\"service.ranking:Integer\" : \"20\",\n" +
+                "\"string.prop\" : \"hello world\",\n" +
+                "\"value\" : true\n" +
+                "}";
+        final String cfgPid = getClass().getSimpleName() + "." + uniqueID();
+
+        // install config
+        final InstallableResource rsrc = new InstallableResource("/configA/" + cfgPid + ".cfg.json",
+                new ByteArrayInputStream(JSONConfig.getBytes("UTF-8")), null, null,
+                null, 10);
+        installer.updateResources(URL_SCHEME, new InstallableResource[] {rsrc}, null);
+
+        // get config
+        final Configuration cfg = waitForConfigValue("After installing", cfgPid, "string.prop", "hello world");
+        assertEquals(20, cfg.getProperties().get("service.ranking"));
+        assertEquals(Boolean.TRUE, cfg.getProperties().get("value"));
     }
 
     protected final class ConfigCondition extends Condition {
