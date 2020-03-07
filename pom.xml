@@ -21,23 +21,23 @@
     <parent>
         <groupId>org.apache.sling</groupId>
         <artifactId>sling</artifactId>
-        <version>33</version>
+        <version>38</version>
         <relativePath/>
     </parent>
 
     <artifactId>org.apache.sling.installer.it</artifactId>
-    <version>3.8.13-SNAPSHOT</version>
+    <version>3.10.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Apache Sling Installer Integration Tests</name>
     <description>Integration tests of the Sling installer bundle</description>
 
     <properties>
-        <exam.version>3.0.3</exam.version>
-        <url.version>2.5.2</url.version>
+        <exam.version>4.13.1</exam.version>
+        <url.version>2.6.1</url.version>
         <pax.exam.log.level>INFO</pax.exam.log.level>
         <pax.vm.options>-Xmx256M -XX:MaxPermSize=256m</pax.vm.options>
-        <installer.configuration.version>1.1.3-SNAPSHOT</installer.configuration.version>
+        <installer.configuration.version>1.3.1-SNAPSHOT</installer.configuration.version>
         
         <argLine>${pax.vm.options}</argLine>
 
@@ -451,6 +451,12 @@
     
     <dependencies>
         <dependency>
+             <groupId>org.osgi</groupId>
+             <artifactId>org.osgi.service.cm</artifactId>
+             <version>1.6.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.installer.factory.configuration</artifactId>
             <version>${installer.configuration.version}</version>
@@ -463,12 +469,6 @@
             <scope>provided</scope>
         </dependency>          
         <dependency>
-             <groupId>org.osgi</groupId>
-             <artifactId>org.osgi.service.cm</artifactId>
-             <version>1.6.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.commons.log</artifactId>
             <version>2.1.2</version>
@@ -477,6 +477,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>4.13</version>
         </dependency>
         <dependency>
             <groupId>org.ops4j.pax.exam</groupId>
@@ -510,7 +511,7 @@
         <dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.framework</artifactId>
-            <version>5.6.1</version>
+            <version>6.0.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

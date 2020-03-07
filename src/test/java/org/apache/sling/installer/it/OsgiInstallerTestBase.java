@@ -495,19 +495,27 @@ public class OsgiInstallerTestBase implements FrameworkListener {
                         systemProperty("org.ops4j.pax.url.mvn.localRepository").value(localRepo)
                 ),
                 systemProperty( "org.ops4j.pax.logging.DefaultServiceLog.level" ).value(paxDebugLevel),
-                frameworkProperty("sling.installer.requiredservices").value(requiredServices()),
+                when(!requiredServices().isEmpty())
+                        .useOptions(frameworkProperty("sling.installer.requiredservices").value(requiredServices())
+                ),
                 provision(
                         mavenBundle("org.apache.sling", "org.apache.sling.commons.log", "4.0.6"),
                         mavenBundle("org.apache.sling", "org.apache.sling.commons.logservice", "1.0.6"),
 
-                        mavenBundle("org.slf4j", "slf4j-api", "1.7.5"),
-                        mavenBundle("org.slf4j", "jcl-over-slf4j", "1.7.5"),
-                        mavenBundle("org.slf4j", "log4j-over-slf4j", "1.7.5"),
+                        // mavenBundle("org.slf4j", "slf4j-api", "1.7.5"),
+                        // mavenBundle("org.slf4j", "jcl-over-slf4j", "1.7.5"),
+                        // mavenBundle("org.slf4j", "log4j-over-slf4j", "1.7.5"),
 
-        	            mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.0"),
-        	            mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.4"),
-                        mavenBundle("org.apache.felix", "org.apache.felix.metatype", "1.2.0"),
-        	        	mavenBundle("org.apache.sling", "org.apache.sling.installer.core", POM_VERSION).startLevel(5),
+                        mavenBundle("org.osgi", "org.osgi.util.function", "1.0.0"),
+                        mavenBundle("org.osgi", "org.osgi.util.promise", "1.0.0"),
+
+                        mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.16"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.16"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.metatype", "1.2.2"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.converter", "1.0.10"),
+                        mavenBundle("org.apache.sling", "org.apache.sling.commons.johnzon", "1.1.2"),
+
+                        mavenBundle("org.apache.sling", "org.apache.sling.installer.core", POM_VERSION).startLevel(5),
                         mavenBundle("org.apache.sling", "org.apache.sling.installer.factory.configuration", CONFIG_VERSION).startLevel(5)
         		)
         );
