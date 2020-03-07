@@ -47,7 +47,7 @@ public class BundleInstallUpgradeDowngradeTest extends OsgiInstallerTestBase {
         super.tearDown();
     }
 
-	@Test
+    @Test
     public void testInstallUpgradeDowngradeBundle() throws Exception {
     	final String symbolicName = "osgi-installer-testbundle";
 
@@ -220,7 +220,7 @@ public class BundleInstallUpgradeDowngradeTest extends OsgiInstallerTestBase {
     public void testReplaceBundleWithSameUrlButDifferentSymbolicName() throws Exception {
         final String symbolicName = "osgi-installer-testbundle";
         final String symbolicName2 = "osgi-installer-testA";
-        final String installableResourceId = "stable-id";
+        final String installableResourceId = "stable-id.jar";
 
         assertNull("Test bundle must not be present before test", findBundle(symbolicName));
         assertNull("Test A bundle must not be present before test", findBundle(symbolicName2));
