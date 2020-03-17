@@ -390,6 +390,30 @@ public class OsgiInstallerTestBase implements FrameworkListener {
         }
         return b;
     }
+    
+    protected Bundle findBundleInVersion(String symbolicName, String version) {
+        for(Bundle b : bundleContext.getBundles()) {
+            if (symbolicName.equals(b.getSymbolicName()) &&  b.getHeaders().get(Constants.BUNDLE_VERSION).equals(version)) {
+                return b;
+            }
+        }
+        return null;
+    }
+    
+    protected Bundle assertBundleInVersion(String info, String symbolicName, String version, int state) {
+        final Bundle b = findBundleInVersion(symbolicName, version);
+        if(info == null) {
+            info = "";
+        } else {
+            info += ": ";
+        }
+        assertNotNull(info + "Expected bundle " + symbolicName + " to be installed", b);
+        if(state >= 0) {
+            assertEquals(info + "Expected bundle " + symbolicName + " to be in state " + state,
+                    state, b.getState());
+        }
+        return b;
+    }
 
     protected File getTestBundle(String bundleName) {
     	return new File(System.getProperty("osgi.installer.base.dir"), bundleName);
