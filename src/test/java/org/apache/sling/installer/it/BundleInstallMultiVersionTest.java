@@ -20,13 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 
-import java.io.File;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.sling.installer.api.InstallableResource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +34,7 @@ import org.osgi.framework.Bundle;
 @RunWith(PaxExam.class)
 public class BundleInstallMultiVersionTest extends OsgiInstallerTestBase {
 
-    private static final String PROPERTY_MULTIVERSION = "sling.installer.multiversion";
+    private static final String PROPERTY_MULTIVERSION = "sling.installer.experimental.multiversion";
 
     @org.ops4j.pax.exam.Configuration
     public Option[] config() {
@@ -120,7 +116,7 @@ public class BundleInstallMultiVersionTest extends OsgiInstallerTestBase {
                 listener,
                 new BundleEvent(symbolicName, "1.0",
                     org.osgi.framework.BundleEvent.STARTED));
-            
+
             final Bundle b11 = assertBundleInVersion("1.1 not active after adding new version", symbolicName,
                 "1.1", Bundle.ACTIVE);
             assertEquals("Bundle ID of installed version must not change", bundleVersionIDs.get("1.1"),
