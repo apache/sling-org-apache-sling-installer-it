@@ -390,7 +390,7 @@ public class OsgiInstallerTestBase implements FrameworkListener {
         }
         return b;
     }
-    
+
     protected Bundle findBundleInVersion(String symbolicName, String version) {
         for(Bundle b : bundleContext.getBundles()) {
             if (symbolicName.equals(b.getSymbolicName()) &&  b.getHeaders().get(Constants.BUNDLE_VERSION).equals(version)) {
@@ -399,7 +399,7 @@ public class OsgiInstallerTestBase implements FrameworkListener {
         }
         return null;
     }
-    
+
     protected Bundle assertBundleInVersion(String info, String symbolicName, String version, int state) {
         final Bundle b = findBundleInVersion(symbolicName, version);
         if(info == null) {
@@ -533,11 +533,12 @@ public class OsgiInstallerTestBase implements FrameworkListener {
                         mavenBundle("org.osgi", "org.osgi.util.function", "1.0.0"),
                         mavenBundle("org.osgi", "org.osgi.util.promise", "1.0.0"),
 
-                        mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.16"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.20"),
                         mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.16"),
                         mavenBundle("org.apache.felix", "org.apache.felix.metatype", "1.2.2"),
-                        mavenBundle("org.apache.felix", "org.apache.felix.converter", "1.0.10"),
-                        mavenBundle("org.apache.sling", "org.apache.sling.commons.johnzon", "1.1.2"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.converter", "1.0.14"),
+                        mavenBundle("org.apache.felix", "org.apache.felix.cm.json", "1.0.3-SNAPSHOT"),
+                        mavenBundle("org.apache.sling", "org.apache.sling.commons.johnzon", "1.2.1-SNAPSHOT"),
 
                         mavenBundle("org.apache.sling", "org.apache.sling.installer.core", POM_VERSION).startLevel(5),
                         mavenBundle("org.apache.sling", "org.apache.sling.installer.factory.configuration", CONFIG_VERSION).startLevel(5)
