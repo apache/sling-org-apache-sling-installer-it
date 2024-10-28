@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarOutputStream;
@@ -176,7 +177,7 @@ public class BundleInstallUpgradeExceptionRetryTest extends OsgiInstallerTestBas
 	}
 
 	private static File createBundle(String name, String manifest, Class<?>... classes) throws IOException {
-		File f = File.createTempFile(name, ".jar");
+		File f = Files.createTempFile(name, ".jar").toFile();
 		f.deleteOnExit();
 
 		Manifest mf = new Manifest(new ByteArrayInputStream(manifest.getBytes("utf-8")));
